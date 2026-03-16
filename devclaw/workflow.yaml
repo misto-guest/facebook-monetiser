@@ -1,0 +1,5 @@
+# DevClaw workflow for facebook-monetiser
+# Inherits from workspace defaults, overrides testPolicy to enable QA
+
+workflow:
+  testPolicy: agent  # Enable automated testing after review
