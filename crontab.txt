@@ -1,0 +1,2 @@
+# Facebook Graph API Scraper - Run every hour
+0 * * * * /Users/northsea/clawd-dmitry/facebook-monetiser/run-scraper.sh >> /Users/northsea/clawd-dmitry/facebook-monetiser/scraper.log 2>&1

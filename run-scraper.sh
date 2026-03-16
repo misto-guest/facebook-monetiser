@@ -1,0 +1,4 @@
+#!/bin/bash
+cd ~/clawd-dmitry/facebook-monetiser
+export FACEBOOK_ACCESS_TOKEN="EAANoFDt6v7gBQZBo3jYc9VLHKis0nWB9ZBHG3guYoWuo9HY4o7B5O2AxVZCPbFdZCdvAuoPdmwwZARTlEy0uEPndAZBVHcRihC7aFSFu9U4ZAoHQDKqeLumLhHSoUThTvS9UDItmFZCuoZBmzLSVbYEWcan4m0lIdM7ZAqhu080rfbvZB2hTz7cd069GyAOaO5IWyvIj3G1fHTlB2JW01Xnhd5YeOrWJGZCTNvzxhV9FQ3KGVHmSYmAQFtO5h0hbKZCQZBP3itLed8Gjry0ijD3Ew73Gq1"
+node graph-scraper.js >> scraper.log 2>&1

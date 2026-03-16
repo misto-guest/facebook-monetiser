@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - Facebook Monetiser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .stat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <span class="text-xl font-bold text-purple-600">Facebook Monetiser</span>
+        <span class="text-sm text-gray-400 bg-gray-100 px-2 py-1 rounded">Analytics</span>
+      </div>
+      <div class="space-x-4">
+        <a href="/dashboard" class="text-gray-600 hover:text-purple-600">Dashboard</a>
+        <a href="/" class="text-gray-600 hover:text-purple-600">Home</a>
+        <button onclick="refreshData()" class="text-gray-600 hover:text-purple-600">Refresh</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card bg-white rounded-lg p-6 border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm">Total Predictions</p>
+            <p id="total-predictions" class="text-2xl font-bold text-gray-800">-</p>
+          </div>
+          <div class="text-3xl">📊</div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-lg p-6 border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm">Avg Confidence</p>
+            <p id="avg-confidence" class="text-2xl font-bold text-blue-600">-</p>
+          </div>
+          <div class="text-3xl">🎯</div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-lg p-6 border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm">With Actuals</p>
+            <p id="predictions-with-actuals" class="text-2xl font-bold text-green-600">-</p>
+          </div>
+          <div class="text-3xl">✅</div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-lg p-6 border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm">Est. Accuracy</p>
+            <p id="estimated-accuracy" class="text-2xl font-bold text-purple-600">-</p>
+          </div>
+          <div class="text-3xl">📈</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- CTR Predictions Chart -->
+      <div class="bg-white rounded-lg p-6 border">
+        <h3 class="text-lg font-bold mb-4">CTR Predictions vs Actuals</h3>
+        <canvas id="ctrChart"></canvas>
+      </div>
+
+      <!-- Content Type Performance -->
+      <div class="bg-white rounded-lg p-6 border">
+        <h3 class="text-lg font-bold mb-4">Content Type Performance</h3>
+        <canvas id="contentTypeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Velocity Trends -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- Niche Performance -->
+      <div class="bg-white rounded-lg p-6 border">
+        <h3 class="text-lg font-bold mb-4">Niche Performance</h3>
+        <canvas id="nicheChart"></canvas>
+      </div>
+
+      <!-- Velocity Score Trends -->
+      <div class="bg-white rounded-lg p-6 border">
+        <h3 class="text-lg font-bold mb-4">Velocity Score Distribution</h3>
+        <canvas id="velocityChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Best Performing Content -->
+    <div class="bg-white rounded-lg p-6 border mb-6">
+      <h3 class="text-lg font-bold mb-4">Best Performing Content</h3>
+      <div id="best-content" class="space-y-3">
+        <p class="text-gray-500">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Model Performance -->
+    <div class="bg-white rounded-lg p-6 border">
+      <h3 class="text-lg font-bold mb-4">AI Model Performance</h3>
+      <div id="model-performance" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-4 bg-blue-50 rounded">
+          <p class="text-sm text-gray-600">Text Generation</p>
+          <p class="text-xl font-bold text-blue-600">GPT-4 Turbo</p>
+          <p class="text-xs text-gray-500">Best performing</p>
+        </div>
+        <div class="p-4 bg-purple-50 rounded">
+          <p class="text-sm text-gray-600">Image Generation</p>
+          <p class="text-xl font-bold text-purple-600">DALL-E 3</p>
+          <p class="text-xs text-gray-500">Highest quality</p>
+        </div>
+        <div class="p-4 bg-green-50 rounded">
+          <p class="text-sm text-gray-600">Cost Efficiency</p>
+          <p class="text-xl font-bold text-green-600">$0.002/gen</p>
+          <p class="text-xs text-gray-500">Average cost</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/dashboard-enhanced.js"></script>
+  <script>
+    let ctrChart, contentTypeChart, nicheChart, velocityChart;
+
+    // Initialize charts on load
+    document.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      loadBestContent();
+    });
+
+    function initCharts() {
+      // CTR Predictions Chart
+      const ctrCtx = document.getElementById('ctrChart').getContext('2d');
+      ctrChart = new Chart(ctrCtx, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Predictions',
+              data: [{ x: 1, y: 2.5 }, { x: 2, y: 3.0 }, { x: 3, y: 2.8 }],
+              backgroundColor: 'rgba(147, 51, 234, 0.6)'
+            },
+            {
+              label: 'Actuals',
+              data: [{ x: 1, y: 2.3 }, { x: 2, y: 3.2 }, { x: 3, y: 2.6 }],
+              backgroundColor: 'rgba(34, 197, 94, 0.6)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Post ID' } },
+            y: { title: { display: true, text: 'CTR (%)' }, min: 0, max: 5 }
+          }
+        }
+      });
+
+      // Content Type Chart
+      const contentTypeCtx = document.getElementById('contentTypeChart').getContext('2d');
+      contentTypeChart = new Chart(contentTypeCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Image', 'Reel', 'Text', 'Carousel'],
+          datasets: [
+            {
+              label: 'Avg CTR',
+              data: [2.5, 3.5, 1.8, 3.0],
+              backgroundColor: 'rgba(147, 51, 234, 0.6)'
+            },
+            {
+              label: 'Avg CVR',
+              data: [1.2, 1.5, 0.9, 1.3],
+              backgroundColor: 'rgba(34, 197, 94, 0.6)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      // Niche Performance Chart
+      const nicheCtx = document.getElementById('nicheChart').getContext('2d');
+      nicheChart = new Chart(nicheCtx, {
+        type: 'radar',
+        data: {
+          labels: ['90s Nostalgia', 'Political', 'Emotional'],
+          datasets: [
+            {
+              label: 'Engagement Rate',
+              data: [4.2, 3.1, 3.8],
+              borderColor: 'rgb(147, 51, 234)',
+              backgroundColor: 'rgba(147, 51, 234, 0.2)'
+            },
+            {
+              label: 'Originality',
+              data: [0.85, 0.72, 0.78],
+              borderColor: 'rgb(34, 197, 94)',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: { beginAtZero: true }
+          }
+        }
+      });
+
+      // Velocity Distribution Chart
+      const velocityCtx = document.getElementById('velocityChart').getContext('2d');
+      velocityChart = new Chart(velocityCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Trending', 'Moderate', 'Low'],
+          datasets: [{
+            data: [25, 45, 30],
+            backgroundColor: [
+              'rgba(34, 197, 94, 0.8)',
+              'rgba(234, 179, 8, 0.8)',
+              'rgba(239, 68, 68, 0.8)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    async function loadBestContent() {
+      try {
+        const res = await fetch('/api/predictions/comparisons?limit=10');
+        const data = await res.json();
+
+        if (data.comparisons && data.comparisons.length > 0) {
+          const container = document.getElementById('best-content');
+          container.innerHTML = data.comparisons.slice(0, 5).map(comp => `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+              <div class="flex-1">
+                <p class="font-semibold">${comp.page_name || 'Unknown Page'}</p>
+                <p class="text-sm text-gray-600 truncate">${comp.caption || 'No caption'}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-semibold text-green-600">${comp.accuracy_score ? (comp.accuracy_score * 100).toFixed(1) + '%' : 'N/A'}</p>
+                <p class="text-xs text-gray-500">Accuracy</p>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading best content:', error);
+      }
+    }
+
+    function refreshData() {
+      loadBestContent();
+      loadAnalytics();
+      alert('Analytics refreshed!');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Facebook Monetiser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-active {
+      border-bottom: 3px solid #7c3aed;
+      color: #7c3aed;
+    }
+    .risk-low { background-color: #d1fae5; color: #065f46; }
+    .risk-medium { background-color: #fef3c7; color: #92400e; }
+    .risk-high { background-color: #fee2e2; color: #991b1b; }
+    .status-pending { background-color: #fef3c7; color: #92400e; }
+    .status-approved { background-color: #d1fae5; color: #065f46; }
+    .status-posted { background-color: #dbeafe; color: #1e40af; }
+    .status-rejected { background-color: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <span class="text-xl font-bold text-purple-600">Facebook Monetiser</span>
+        <span class="text-sm text-gray-400 bg-gray-100 px-2 py-1 rounded">Dashboard</span>
+      </div>
+      <div class="space-x-4">
+        <a href="/" class="text-gray-600 hover:text-purple-600">Home</a>
+        <button onclick="refreshData()" class="text-gray-600 hover:text-purple-600">Refresh</button>
+        <button onclick="showTab('settings')" class="text-purple-600 hover:text-purple-700 font-semibold">
+          ⚙️ Settings
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- System Status Banner (MOVED TO TOP) -->
+    <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-sm border border-purple-200 p-6 mb-6">
+      <div class="flex items-start space-x-4">
+        <div class="flex-shrink-0">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-bold text-gray-900">⚡ System Status</h3>
+            <span id="system-mode-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+              🔶 Mock Mode
+            </span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p class="font-semibold text-gray-700">Content Generation</p>
+              <p id="status-generation" class="text-yellow-700">Template-based</p>
+            </div>
+            <div>
+              <p class="font-semibold text-gray-700">Scraping</p>
+              <p id="status-scraping" class="text-yellow-700">Manual only</p>
+            </div>
+            <div>
+              <p class="font-semibold text-gray-700">Publishing</p>
+              <p id="status-publishing" class="text-yellow-700">Manual only</p>
+            </div>
+            <div>
+              <p class="font-semibold text-gray-700">Automations</p>
+              <p id="status-automations" class="text-yellow-700">None configured</p>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-purple-200">
+            <p class="text-xs text-gray-600">
+              <strong>💡 Tip:</strong>
+              <a href="#" onclick="showTab('settings')" class="text-purple-600 underline font-semibold">Configure APIs</a> to enable real AI content generation, automatic scraping, and more.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-t-lg shadow-sm border">
+      <div class="flex space-x-8 px-6">
+        <button onclick="showTab('pages')" id="tab-pages" class="py-4 px-2 font-semibold tab-active">
+          Pages
+        </button>
+        <button onclick="showTab('sources')" id="tab-sources" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          Sources & Insights
+        </button>
+        <button onclick="showTab('posts')" id="tab-posts" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          Posts
+        </button>
+        <button onclick="showTab('create')" id="tab-create" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          Create Post
+        </button>
+        <button onclick="showTab('predictions')" id="tab-predictions" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          Predictions
+        </button>
+        <button onclick="showTab('logs')" id="tab-logs" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          Logs
+        </button>
+        <button onclick="showTab('settings')" id="tab-settings" class="py-4 px-2 font-semibold text-gray-500 hover:text-purple-600">
+          ⚙️ Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="bg-white rounded-b-lg shadow p-6">
+      <!-- Pages Tab -->
+      <div id="content-pages" class="tab-content">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Facebook Pages</h2>
+          <button onclick="showAddPageModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+            + Add Page
+          </button>
+        </div>
+        <div id="pages-list" class="space-y-4">
+          <p class="text-gray-500">Loading pages...</p>
+        </div>
+      </div>
+
+      <!-- Sources Tab -->
+      <div id="content-sources" class="tab-content hidden">
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold mb-2">Sources & Insights</h2>
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-900">
+              <strong>💡 What are Sources?</strong><br>
+              Sources are content references that fuel your content strategy. They include:
+            </p>
+            <ul class="text-sm text-blue-800 mt-2 space-y-1 ml-4">
+              <li><strong>🐦 Tweets</strong> - Viral Twitter threads for inspiration</li>
+              <li><strong>📰 Articles</strong> - News and blog posts for trending topics</li>
+              <li><strong>📚 Case Studies</strong> - Success stories and examples</li>
+              <li><strong>🎥 Videos</strong> - YouTube and video content insights</li>
+              <li><strong>🏆 Competitor Posts</strong> - Top-performing content from competitor Facebook pages</li>
+            </ul>
+            <p class="text-sm text-blue-900 mt-3">
+              <strong>🚀 Primary Use Case: Competitor Page Scraping</strong><br>
+              Add competitor Facebook pages as sources to automatically scrape their top-engagement posts. The system extracts images, captions, and performance data to generate similar high-performing content for your pages.
+            </p>
+          </div>
+        </div>
+        <div class="flex justify-between items-center mb-4">
+          <p class="text-sm text-gray-500">Click "+ Add Source" to add tweets, articles, or competitor page URLs for automated scraping and insight extraction.</p>
+          <button onclick="showAddSourceModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+            + Add Source
+          </button>
+        </div>
+        <div id="sources-list" class="space-y-4">
+          <p class="text-gray-500">Loading sources...</p>
+        </div>
+      </div>
+
+      <!-- Posts Tab -->
+      <div id="content-posts" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Generated Posts</h2>
+          <div class="space-x-2">
+            <select id="post-filter" onchange="filterPosts()" class="border rounded px-3 py-2">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="posted">Posted</option>
+            </select>
+          </div>
+        </div>
+        <div id="posts-list" class="space-y-4">
+          <p class="text-gray-500">Loading posts...</p>
+        </div>
+      </div>
+
+      <!-- Create Post Tab -->
+      <div id="content-create" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Create New Post</h2>
+        <form id="create-post-form" class="space-y-6 max-w-2xl">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Page</label>
+            <select id="post-page" required class="w-full border rounded-lg px-4 py-2">
+              <option value="">Choose a page...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Content Type</label>
+            <select id="post-type" required class="w-full border rounded-lg px-4 py-2">
+              <option value="image">Image Post</option>
+              <option value="reel">Reel</option>
+              <option value="text">Text Post</option>
+              <option value="carousel">Carousel</option>
+            </select>
+          </div>
+          
+          <!-- AI Generator Section - PRIMARY -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 class="font-semibold mb-3 text-blue-800">✨ Generate with AI (Recommended)</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Source for Inspiration</label>
+                <select id="generator-source" class="w-full border rounded-lg px-4 py-2">
+                  <option value="">Choose a source...</option>
+                </select>
+              </div>
+              <div class="flex space-x-2">
+                <button type="button" onclick="generateCaption()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex-1">
+                  Generate Caption
+                </button>
+                <button type="button" onclick="generateComment()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex-1">
+                  Generate Comment
+                </button>
+                <button type="button" onclick="generateImagePrompt()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex-1">
+                  Generate Image Prompt
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Manual Input - COLLAPSED by default -->
+          <details class="bg-gray-50 p-4 rounded-lg">
+            <summary class="cursor-pointer font-semibold text-gray-700 hover:text-gray-900">
+              📝 Or Enter Manual Content (Click to Expand)
+            </summary>
+            <div class="mt-4 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Caption</label>
+                <textarea id="post-caption" rows="4" class="w-full border rounded-lg px-4 py-2" placeholder="Enter your caption..."></textarea>
+                <div id="caption-risk" class="mt-2 text-sm"></div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">First Comment (Optional)</label>
+                <input type="text" id="post-comment" class="w-full border rounded-lg px-4 py-2" placeholder="CTA or engagement question...">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Image Prompt (for AI generation)</label>
+                <textarea id="post-image-prompt" rows="2" class="w-full border rounded-lg px-4 py-2" placeholder="Describe the image you want..."></textarea>
+              </div>
+            </div>
+          </details>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Schedule For (Optional)</label>
+            <input type="datetime-local" id="post-schedule" class="w-full border rounded-lg px-4 py-2">
+          </div>
+          <div class="flex space-x-4">
+            <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold">
+              Create Post
+            </button>
+            <button type="button" onclick="analyzeContent()" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-semibold">
+              Analyze Risk
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Predictions Tab -->
+      <div id="content-predictions" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Performance Predictions</h2>
+        <div id="predictions-list" class="space-y-4">
+          <p class="text-gray-500">Loading predictions...</p>
+        </div>
+      </div>
+
+      <!-- Logs Tab -->
+      <div id="content-logs" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-2xl font-bold">Activity Logs</h2>
+            <p class="text-sm text-gray-500 mt-1">Track all system activity, automations, and actions</p>
+          </div>
+          <div class="flex space-x-2">
+            <select id="log-filter" onchange="filterLogs()" class="border rounded px-3 py-2 text-sm">
+              <option value="">All Activity</option>
+              <option value="scraping">🔍 Scraping</option>
+              <option value="generation">✨ Content Generation</option>
+              <option value="posting">📋 Posting</option>
+              <option value="automation">🤖 Automation</option>
+              <option value="system">⚙️ System</option>
+            </select>
+            <button onclick="refreshLogs()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <p class="text-sm text-purple-700 font-semibold">Total Posts Created</p>
+            <p id="stat-posts-created" class="text-2xl font-bold text-purple-900">-</p>
+          </div>
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p class="text-sm text-blue-700 font-semibold">Content Generated</p>
+            <p id="stat-content-generated" class="text-2xl font-bold text-blue-900">-</p>
+          </div>
+          <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p class="text-sm text-green-700 font-semibold">Scraping Runs</p>
+            <p id="stat-scraping-runs" class="text-2xl font-bold text-green-900">-</p>
+          </div>
+          <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+            <p class="text-sm text-orange-700 font-semibold">Follower Count Updates</p>
+            <p id="stat-follower-updates" class="text-2xl font-bold text-orange-900">-</p>
+          </div>
+        </div>
+
+        <!-- Logs List -->
+        <div class="bg-white rounded-lg border">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">Recent Activity</h3>
+          </div>
+          <div id="logs-list" class="divide-y max-h-96 overflow-y-auto">
+            <div class="p-6 text-center text-gray-500">
+              <p>Loading logs...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Automation Schedule Info -->
+        <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h4 class="font-semibold text-yellow-900 mb-2">⚠️ System Status</h4>
+          <ul class="text-sm text-yellow-800 space-y-1">
+            <li>• <strong>NO scheduled automations</strong> - All manual workflow</li>
+            <li>• <strong>Follower counts:</strong> Manual entry only</li>
+            <li>• <strong>Post monitoring:</strong> Manual tracking</li>
+            <li>• <strong>Competitor research:</strong> Manual source addition</li>
+            <li>• <strong>Content generation:</strong> Template-based (not AI API)</li>
+          </ul>
+          <p class="text-xs text-yellow-700 mt-2">
+            To add automation: Set up cron jobs, integrate scraping APIs, or configure Runware/OpenAI keys.
+          </p>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="content-settings" class="tab-content hidden">
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold">⚙️ Settings & Configuration</h2>
+          <p class="text-sm text-gray-500 mt-1">Configure APIs, enable automations, and customize your workflow</p>
+        </div>
+
+        <!-- Active Sources -->
+        <div class="bg-purple-50 rounded-lg shadow border mb-6 border-purple-200">
+          <div class="px-6 py-4 border-b bg-purple-100">
+            <h3 class="font-semibold text-purple-900">📋 Active Sources (Scraping Targets)</h3>
+          </div>
+          <div class="p-4">
+            <div id="active-sources-list" class="space-y-2">
+              <p class="text-gray-500 text-sm">Loading...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- API Configuration -->
+        <div class="bg-white rounded-lg shadow border mb-6">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">🔑 API Keys & Configuration</h3>
+            <p class="text-sm text-gray-500">Enable real AI features and integrations</p>
+          </div>
+          <div class="p-6 space-y-6">
+
+            <!-- Runware API -->
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-semibold text-gray-900">Runware AI (GLM-4)</h4>
+                <span id="runware-status" class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">Not Configured</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">
+                AI content generation using GLM-4 model. Replaces template-based generation.
+              </p>
+              <div class="bg-gray-50 rounded p-3 mb-3 text-sm">
+                <p class="font-mono text-gray-700 mb-2">Runware API Key</p>
+                <div class="relative">
+                  <input type="password" id="runware-key" class="w-full border rounded px-3 py-2 pr-10" placeholder="Enter your Runware API key">
+                  <button type="button" onclick="document.getElementById('runware-key').type = document.getElementById('runware-key').type === 'password' ? 'text' : 'password'" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">👁️</button>
+                </div>
+              </div>
+              <details class="text-sm">
+                <summary class="cursor-pointer text-purple-600 font-semibold">📖 How to get Runware API key</summary>
+                <div class="mt-3 pl-4 border-l-2 border-purple-200 text-gray-600 space-y-2">
+                  <p>1. Visit <a href="https://runware.ai" target="_blank" class="text-purple-600 underline">runware.ai</a></p>
+                  <p>2. Sign up for an account</p>
+                  <p>3. Navigate to Settings → API Keys</p>
+                  <p>4. Create a new API key</p>
+                  <p>5. Copy and paste above</p>
+                  <p class="text-xs text-gray-500">Cost: ~$0.002 per caption generation</p>
+                </div>
+              </details>
+              <button onclick="saveRunwareKey()" class="mt-3 bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">
+                Save & Test
+              </button>
+            </div>
+
+            <!-- Firecrawl API -->
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-semibold text-gray-900">Firecrawl (Scraping)</h4>
+                <span id="firecrawl-status" class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">Not Configured</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">
+                Automatic competitor page scraping and content extraction.
+              </p>
+              <div class="bg-gray-50 rounded p-3 mb-3 text-sm">
+                <p class="font-mono text-gray-700 mb-2">Firecrawl API Key</p>
+                <input type="password" id="firecrawl-key" class="w-full border rounded px-3 py-2" placeholder="Enter your Firecrawl API key">
+              </div>
+              <details class="text-sm">
+                <summary class="cursor-pointer text-purple-600 font-semibold">📖 How to get Firecrawl API key</summary>
+                <div class="mt-3 pl-4 border-l-2 border-purple-200 text-gray-600 space-y-2">
+                  <p>1. Visit <a href="https://firecrawl.dev" target="_blank" class="text-purple-600 underline">firecrawl.dev</a></p>
+                  <p>2. Sign up for an account</p>
+                  <p>3. Go to API Settings</p>
+                  <p>4. Generate API key</p>
+                  <p>5. Copy and paste above</p>
+                  <p class="text-xs text-gray-500">Free tier: 500 scrapes/month</p>
+                </div>
+              </details>
+              <button onclick="saveFirecrawlKey()" class="mt-3 bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">
+                Save & Test
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Automation Settings -->
+        <div class="bg-white rounded-lg shadow border mb-6">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">🤖 Automations (Cron Jobs)</h3>
+            <p class="text-sm text-gray-500">Scheduled tasks that run automatically on your server</p>
+          </div>
+          <div class="p-6 space-y-4">
+
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+              <h4 class="font-semibold text-gray-900 mb-2">📍 Current Automation Status</h4>
+              <div id="automation-status" class="text-sm text-gray-700 space-y-2">
+                <p>Loading automation status...</p>
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-4">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-semibold text-gray-900">1️⃣ Daily Follower Count Scraping</h4>
+                  <p class="text-xs text-gray-500 mt-1">Runs: Every day at 9:00 AM</p>
+                </div>
+                <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">Recommended</span>
+              </div>
+
+              <div class="mb-3">
+                <p class="text-sm text-gray-700 font-semibold mb-1">What it does:</p>
+                <ul class="text-sm text-gray-600 ml-4 space-y-1">
+                  <li>• Connects to Facebook Graph API</li>
+                  <li>• Fetches current follower count for all tracked pages</li>
+                  <li>• Stores historical data in database</li>
+                  <li>• Calculates growth rates week-over-week</li>
+                  <li>• Logs results to automation log</li>
+                </ul>
+              </div>
+
+              <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900">
+                <p class="font-semibold mb-2">📋 Setup Instructions:</p>
+                <ol class="list-decimal ml-4 space-y-2">
+                  <li>SSH into your Fly.io server:
+                    <code class="block bg-blue-100 px-2 py-1 rounded mt-1 text-xs">
+                      ssh root@<your-app>.fly.dev
+                    </code>
+                  </li>
+                  <li>Edit crontab:
+                    <code class="block bg-blue-100 px-2 py-1 rounded mt-1 text-xs">
+                      crontab -e
+                    </code>
+                  </li>
+                  <li>Add this line:
+                    <code class="block bg-blue-100 px-2 py-1 rounded mt-1 text-xs">
+                      0 9 * * * cd /app && node backend/scripts/scrape-followers.js >> logs/automation.log 2>&1
+                    </code>
+                  </li>
+                  <li>Save and exit (CTRL+X, then Y, then Enter)</li>
+                </ol>
+                <p class="text-xs text-blue-700 mt-2">
+                  <strong>Prerequisites:</strong>
+                </p>
+                <ul class="text-xs text-blue-700 ml-4 space-y-1">
+                  <li>• Script exists: <code>backend/scripts/scrape-followers.js</code></li>
+                  <li>• Environment variable: <code>FACEBOOK_PAGE_ACCESS_TOKEN</code></li>
+                  <li>• Token permissions: <code>pages_read_engagement</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-4">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-semibold text-gray-900">2️⃣ Post Monitoring & Tracking</h4>
+                  <p class="text-xs text-gray-500 mt-1">Runs: Every 6 hours (12:00 AM, 6:00 AM, 12:00 PM, 6:00 PM)</p>
+                </div>
+                <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Optional</span>
+              </div>
+
+              <div class="mb-3">
+                <p class="text-sm text-gray-700 font-semibold mb-1">What it does:</p>
+                <ul class="text-sm text-gray-600 ml-4 space-y-1">
+                  <li>• Checks all tracked Facebook pages</li>
+                  <li>• Counts new posts since last check</li>
+                  <li>• Fetches engagement metrics (likes, comments, shares)</li>
+                  <li>• Stores post performance data in database</li>
+                  <li>• Calculates velocity scores for trending content</li>
+                  <li>• Logs new posts to automation log</li>
+                </ul>
+              </div>
+
+              <div class="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900">
+                <p class="font-semibold mb-2">📋 Setup Instructions:</p>
+                <ol class="list-decimal ml-4 space-y-2">
+                  <li>SSH into your Fly.io server</li>
+                  <li>Edit crontab:
+                    <code class="block bg-green-100 px-2 py-1 rounded mt-1 text-xs">
+                      crontab -e
+                    </code>
+                  </li>
+                  <li>Add this line:
+                    <code class="block bg-green-100 px-2 py-1 rounded mt-1 text-xs">
+                      0 */6 * * * cd /app && node backend/scripts/monitor-posts.js >> logs/automation.log 2>&1
+                    </code>
+                  </li>
+                  <li>Save and exit</li>
+                </ol>
+                <p class="text-xs text-green-700 mt-2">
+                  <strong>Prerequisites:</strong>
+                </p>
+                <ul class="text-xs text-green-700 ml-4 space-y-1">
+                  <li>• Script exists: <code>backend/scripts/monitor-posts.js</code></li>
+                  <li>• Environment variable: <code>FACEBOOK_PAGE_ACCESS_TOKEN</code></li>
+                  <li>• Token permissions: <code>pages_read_engagement, pages_manage_posts</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-4">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-semibold text-gray-900">3️⃣ Competitor Content Scraping</h4>
+                  <p class="text-xs text-gray-500 mt-1">Runs: Every 3 hours</p>
+                </div>
+                <span class="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">Advanced</span>
+              </div>
+
+              <div class="mb-3">
+                <p class="text-sm text-gray-700 font-semibold mb-1">What it does:</p>
+                <ul class="text-sm text-gray-600 ml-4 space-y-1">
+                  <li>• Processes all competitor sources in database</li>
+                  <li>• Uses Firecrawl to scrape recent posts</li>
+                  <li>• Extracts images, captions, engagement data</li>
+                  <li>• Stores in scraped_content table</li>
+                  <li>• Generates insights automatically</li>
+                  <li>• Logs all scraped content</li>
+                </ul>
+              </div>
+
+              <div class="bg-purple-50 border border-purple-200 rounded p-3 text-sm text-purple-900">
+                <p class="font-semibold mb-2">📋 Setup Instructions:</p>
+                <ol class="list-decimal ml-4 space-y-2">
+                  <li>SSH into your Fly.io server</li>
+                  <li>Edit crontab:
+                    <code class="block bg-purple-100 px-2 py-1 rounded mt-1 text-xs">
+                      crontab -e
+                    </code>
+                  </li>
+                  <li>Add this line:
+                    <code class="block bg-purple-100 px-2 py-1 rounded mt-1 text-xs">
+                      0 */3 * * * cd /app && node backend/scripts/scrape-competitors.js >> logs/automation.log 2>&1
+                    </code>
+                  </li>
+                  <li>Save and exit</li>
+                </ol>
+                <p class="text-xs text-purple-700 mt-2">
+                  <strong>Prerequisites:</strong>
+                </p>
+                <ul class="text-xs text-purple-700 ml-4 space-y-1">
+                  <li>• Script exists: <code>backend/scripts/scrape-competitors.js</code></li>
+                  <li>• Environment variable: <code>FIRECRAWL_API_KEY</code></li>
+                  <li>• Competitor sources added in Sources tab</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="border-2 border-yellow-200 bg-yellow-50 rounded-lg p-4">
+              <h4 class="font-semibold text-yellow-900 mb-2">⚠️ Important Notes</h4>
+              <ul class="text-sm text-yellow-800 space-y-2">
+                <li>• <strong>Fly.io Note:</strong> Use <code>flyctl ssh console</code> to access server</li>
+                <li>• <strong>Scripts Status:</strong> All automation scripts must be created first</li>
+                <li>• <strong>Logs:</strong> All cron output goes to <code>logs/automation.log</code></li>
+                <li>• <strong>Testing:</strong> Test scripts manually before adding to crontab</li>
+                <li>• <strong>Timezone:</strong> Cron uses UTC - adjust times accordingly</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Facebook API -->
+        <div class="bg-white rounded-lg shadow border mb-6">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">📘 Facebook Graph API</h3>
+            <p class="text-sm text-gray-500">For automatic posting and page monitoring</p>
+          </div>
+          <div class="p-6 space-y-4">
+
+            <div class="border rounded-lg p-4">
+              <h4 class="font-semibold text-gray-900 mb-2">Facebook App Configuration</h4>
+              <p class="text-sm text-gray-600 mb-3">
+                Required for automatic posting, follower scraping, and post monitoring.
+              </p>
+              <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900">
+                <p class="font-semibold mb-2">📋 Setup Instructions:</p>
+                <ol class="list-decimal ml-4 space-y-2">
+                  <li>Go to <a href="https://developers.facebook.com/apps" target="_blank" class="text-purple-600 underline">Facebook Developers</a></li>
+                  <li>Create a new app → Select "Business" type</li>
+                  <li>Add "Facebook Login" product</li>
+                  <li>Go to Settings → Basic → Copy App ID and App Secret</li>
+                  <li>Set environment variables:
+                    <code class="block bg-blue-100 px-2 py-1 rounded mt-2 text-xs">
+                      FACEBOOK_APP_ID=your_app_id<br>
+                      FACEBOOK_APP_SECRET=your_app_secret<br>
+                      FACEBOOK_PAGE_ACCESS_TOKEN=your_page_token
+                    </code>
+                  </li>
+                </ol>
+                <p class="text-xs text-blue-700 mt-2">
+                  Token permissions needed: pages_read_engagement, pages_manage_posts, pages_manage_engagement
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Scraping Sources Configuration -->
+        <div class="bg-white rounded-lg shadow border mb-6">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">🕷️ Scraping Sources</h3>
+            <p class="text-sm text-gray-500">Add Facebook pages & groups to scrape for content inspiration</p>
+          </div>
+          <div class="p-6 space-y-4">
+            
+            <!-- Add New Scraper -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 class="font-semibold text-blue-900 mb-3">➕ Add Source to Scrape</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <select id="scraper-type" class="border rounded px-3 py-2">
+                  <option value="facebook_page">Facebook Page</option>
+                  <option value="facebook_group">Facebook Group</option>
+                </select>
+                <input type="text" id="scraper-url" class="border rounded px-3 py-2" placeholder="https://facebook.com/...">
+              </div>
+              <input type="text" id="scraper-name" class="w-full border rounded px-3 py-2 mt-3" placeholder="Name (optional)">
+              <div class="flex gap-2 mt-3">
+                <button onclick="addScraper()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                  Add & Start Scraping
+                </button>
+                <button onclick="testScraper()" class="bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700">
+                  Test Connection
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Scrapers List -->
+            <div>
+              <h4 class="font-semibold text-gray-900 mb-3">📋 Active Scrapers</h4>
+              <div id="scrapers-list" class="space-y-2">
+                <p class="text-gray-500 text-sm">No scrapers configured yet.</p>
+              </div>
+            </div>
+
+            <!-- Scraper Status -->
+            <div class="bg-gray-50 border rounded-lg p-4">
+              <h4 class="font-semibold text-gray-900 mb-2">🔄 Scraper Status</h4>
+              <div id="scraper-status" class="text-sm space-y-1">
+                <p><span class="text-gray-500">Facebook Page Scraper:</span> <span class="text-yellow-600">Not configured</span></p>
+                <p><span class="text-gray-500">Facebook Group Scraper:</span> <span class="text-yellow-600">Not configured</span></p>
+                <p><span class="text-gray-500">Last scrape:</span> <span class="text-gray-400">Never</span></p>
+                <p><span class="text-gray-500">Next scheduled:</span> <span class="text-gray-400">Not set</span></p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Current Config Display -->
+        <div class="bg-white rounded-lg shadow border">
+          <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">🔍 Current Configuration</h3>
+          </div>
+          <div class="p-6">
+            <div id="current-config" class="bg-gray-50 rounded p-4 text-sm font-mono space-y-2">
+              <p>Checking configuration...</p>
+            </div>
+            <button onclick="checkConfig()" class="mt-4 bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700">
+              Refresh Configuration
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Add Page -->
+  <div id="add-page-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full">
+      <h3 class="text-xl font-bold mb-4">Add Facebook Page</h3>
+      <form id="add-page-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page Name</label>
+          <input type="text" name="name" required class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page ID</label>
+          <input type="text" name="page_id" required class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <input type="text" name="category" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">About</label>
+          <textarea name="about" rows="2" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Followers Count</label>
+          <input type="number" name="followers_count" value="0" class="w-full border rounded px-3 py-2">
+        </div>
+        <input type="hidden" name="country" value="US">
+        <div class="flex space-x-2">
+          <button type="submit" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+            Add Page
+          </button>
+          <button type="button" onclick="closeModal('add-page-modal')" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal for Add Source -->
+  <div id="add-source-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full">
+      <h3 class="text-xl font-bold mb-4">Add Source</h3>
+      <div class="bg-purple-50 border border-purple-200 rounded p-3 mb-4 text-sm text-purple-900">
+        <p class="font-semibold">🚀 Pro Tip: Competitor Page Scraping</p>
+        <p class="mt-1">For scraping competitor Facebook pages, select <strong>"Competitor Post"</strong> and paste the page URL. The system will automatically extract their top posts, images, and engagement data.</p>
+      </div>
+      <form id="add-source-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Source Type</label>
+          <select name="source_type" required class="w-full border rounded px-3 py-2" onchange="updateSourceHelp()">
+            <option value="tweet">🐦 Tweet</option>
+            <option value="article">📰 Article</option>
+            <option value="case_study">📚 Case Study</option>
+            <option value="video">🎥 Video</option>
+            <option value="competitor_post" selected>🏆 Competitor Page (Auto-Scrape)</option>
+          </select>
+          <p id="source-help" class="text-xs text-gray-500 mt-1">Paste a Facebook page URL to automatically scrape their top posts</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <input type="text" name="title" required placeholder="e.g., Nike's Facebook Page" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Facebook Page URL</label>
+          <input type="url" name="url" required placeholder="https://facebook.com/competitor-page" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page Name / Author</label>
+          <input type="text" name="author" placeholder="e.g., Nike" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+          <textarea name="content_text" rows="2" placeholder="What makes this page interesting? What to learn?" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+        <div class="flex space-x-2">
+          <button type="submit" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+            Add & Start Scraping
+          </button>
+          <button type="button" onclick="closeModal('add-source-modal')" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
