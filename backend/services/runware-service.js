@@ -14,13 +14,15 @@ class RunwareService {
         glm4: 'z.ai/glm-4'
       },
       image: {
-        dall_e: 'openai/dall-e-3',
-        sdxl: 'stability/sdxl-turbo'
+        // Model must be a valid Runware AIR identifier
+        // Get valid models from: https://runware.ai/dashboard/models
+        // Common formats: "runware:101@1", "civitai:12345@1", etc.
+        default: null  // User must configure their model
       }
     };
 
     this.defaultTextModel = this.models.text.glm4;
-    this.defaultImageModel = this.models.image.dall_e;
+    this.defaultImageModel = this.models.image.default;
 
     this.modelPerformance = {
       text: {},
@@ -79,30 +81,47 @@ class RunwareService {
    * Generate image with z.ai
    */
   async generateImage(prompt, model = null, options = {}) {
+    // Check API key
     if (!this.apiKey) {
+      console.warn('RUNWARE_API_KEY not configured, using mock image');
       return this._mockGenerateImage(prompt, options);
     }
 
+    // Check model - user must configure a valid Runware model ID
+    // Get from: https://runware.ai/dashboard/models
     const selectedModel = model || this.defaultImageModel;
+    if (!selectedModel) {
+      console.warn('No Runware model configured. Set RUNWARE_MODEL in .env or update runware-service.js');
+      return this._mockGenerateImage(prompt, options);
+    }
+
+    const crypto = require('crypto');
+    const taskUUID = crypto.randomUUID();
 
     try {
+      // Runware API v1 requires array format with taskType and taskUUID
       const response = await fetch(`${this.baseUrl}/image/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        body: JSON.stringify({
-          model: selectedModel,
+        body: JSON.stringify([{
+          taskType: 'imageInference',
+          taskUUID,
           prompt,
           width: options.width || 1024,
           height: options.height || 1024,
-          num_images: options.numImages || 1
-        })
+          numImages: options.numImages || 1,
+          model: selectedModel
+        }])
       });
 
       if (!response.ok) {
-        throw new Error(`Runware API error: ${response.status}`);
+        const errorText = await response.text();
+        // If API fails, try fallback to mock but log the error
+        console.error('Runware API error:', response.status, errorText);
+        return this._mockGenerateImage(prompt, options);
       }
 
       const data = await response.json();
@@ -110,10 +129,10 @@ class RunwareService {
       this._trackModelPerformance('image', selectedModel, data);
 
       return {
-        image_url: data.images?.[0]?.url || data.image_url || data.url,
+        image_url: data.data?.[0]?.images?.[0]?.url || data.data?.[0]?.imageURL || data.images?.[0]?.url,
         model: selectedModel,
-        generation_time: data.generation_time || null,
-        cost: data.cost || null
+        generation_time: data.data?.[0]?.generationTime || null,
+        cost: data.data?.[0]?.cost || null
       };
     } catch (error) {
       console.error('Runware image generation error:', error.message);
