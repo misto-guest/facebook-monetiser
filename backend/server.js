@@ -30,12 +30,7 @@ const publishingRouter = require('./api/publishing');
 const migrationsRouter = require('./api/migrations');
 const schemaRouter = require('./api/schema');
 const scraperRouter = require('./api/scraper');
-
-// Enhanced SMV routes
-const pagesEnhancedRouter = require('./api/pages-enhanced');
-const sourcesEnhancedRouter = require('./api/sources-enhanced');
 const scrapedRouter = require('./api/scraped');
-const predictionsEnhancedRouter = require('./api/predictions-enhanced');
 
 const app = express();
 const PORT = config.port;
@@ -139,12 +134,9 @@ app.get('/dashboard', (req, res) => {
 
 // API Routes
 app.use('/api/pages', pagesRouter);
-app.use('/api/pages', pagesEnhancedRouter);
 app.use('/api/sources', sourcesRouter);
-app.use('/api/sources', sourcesEnhancedRouter);
 app.use('/api/posts', postsRouter);
 app.use('/api/predictions', predictionsRouter);
-app.use('/api/predictions', predictionsEnhancedRouter);
 app.use('/api/scraped', scrapedRouter);
 app.use('/api/content', contentGeneratorRouter);
 app.use('/api/config', configRouter);
